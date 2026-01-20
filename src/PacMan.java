@@ -4,8 +4,7 @@ import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
 
-
-public class PacMan extends JPanel {
+public class PacMan extends JPanel implements ActionListener, KeyListener {
     class Block {
         int X;
         int y;
@@ -15,6 +14,9 @@ public class PacMan extends JPanel {
 
         int startX;
         int startY;
+        char direction = 'U';
+        int velocityX = 0;
+        int velocityY = 0;
 
         Block(Image image, int x, int y, int width, int height) {
             this.image = image;
@@ -25,6 +27,42 @@ public class PacMan extends JPanel {
             this.startX = x;
             this.startY = y;
         }
+
+        void updateDirection(char direction) {
+            char prevDirection = this.direction;
+            this.direction = direction;
+            updateVelocity();
+            this.X += this.velocityX;
+            this.y += this.velocityY;
+            for (Block wall : walls) {
+                if (collision(this,  wall)) {
+                    this.X -= this.velocityX;
+                    this.y -= this.velocityY;
+                    this.direction = prevDirection;
+                    updateVelocity();
+                }
+            }
+        }
+
+        void updateVelocity() {
+            if (this.direction == 'U') {
+                this.velocityX = 0;
+                this.velocityY = -titleSize/4;
+            }
+            else if (this.direction == 'D') {
+                this.velocityX = 0;
+                this.velocityY = titleSize/4;
+            }
+            else if (this.direction =='L') {
+                this.velocityX = -titleSize/4;
+                this.velocityY = 0;
+            }
+             else if (this.direction =='R') {
+                this.velocityX = titleSize/4;
+                this.velocityY = 0;
+            }
+        }
+        
     }
     private int rowCount = 21;
     private int columnCount = 19;
@@ -74,9 +112,13 @@ public class PacMan extends JPanel {
     HashSet<Block> ghosts;
     Block pacman;
 
+    Timer gameLoop; 
+
     PacMan() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
         setBackground(Color.BLACK);
+        addKeyListener(this);
+        setFocusable(true);
 
         //load images
         wallImage = new ImageIcon(getClass().getResource("./wall.png")).getImage();
@@ -91,8 +133,9 @@ public class PacMan extends JPanel {
         pacmanRightImage = new ImageIcon(getClass().getResource("./pacmanRight.png")).getImage();
 
         loadMap();
+        gameLoop = new Timer(50, this);
+        gameLoop.start();
 
-        
     }
 
     public void loadMap () {
@@ -141,5 +184,76 @@ public class PacMan extends JPanel {
 
     }
 
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        draw(g);
+    }
 
+    public void draw(Graphics g){
+        g.drawImage(pacman.image, pacman.X, pacman.y, pacman.width, pacman.height, null);
+
+        for (Block ghost : ghosts) {
+            g.drawImage(ghost.image, ghost.X, ghost.y, ghost.width, ghost.height, null);
+        }
+
+        for (Block wall : walls) {
+            g.drawImage(wall.image, wall.X, wall.y, wall.width, wall.height, null);
+        }
+
+        g.setColor(Color.WHITE);
+        for (Block food : foods) {
+            g.fillRect(food.X, food.y, food.width, food.height);
+        }
+    }
+
+    public void move() {
+        pacman.X += pacman.velocityX;
+        pacman.y += pacman.velocityY;
+        
+        for (Block wall : walls) {
+            if (collision(pacman, wall)) {
+                pacman.X -= pacman.velocityX;
+                pacman.y -= pacman.velocityY;
+                break;
+            }
+        }
+
+    }
+
+    public boolean collision(Block a, Block b) {
+        return a.X < b.X + b.width &&
+        a.X + a.width > b.X &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        move();
+        repaint();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
+
+    @Override
+    public void keyPressed(KeyEvent e) {}
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+       //System.out.println("KeyEvent:" + e.getKeyCode());
+       if (e.getKeyCode() == KeyEvent.VK_UP) {
+        pacman.updateDirection('U');
+       }
+       else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+        pacman.updateDirection('D');
+       }
+       else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+        pacman.updateDirection('L');
+       }
+       else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+        pacman.updateDirection('R');
+       }
+       
+    }
 }
